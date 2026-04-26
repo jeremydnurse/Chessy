@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored Stockfish worker — copied verbatim from node_modules.
+    "public/**",
   ]),
 ]);
 
