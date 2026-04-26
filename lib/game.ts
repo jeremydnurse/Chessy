@@ -53,6 +53,7 @@ export class Game {
     if (this.chess.isStalemate()) return { over: true, kind: 'stalemate' };
     if (this.chess.isThreefoldRepetition()) return { over: true, kind: 'threefold' };
     if (this.chess.isInsufficientMaterial()) return { over: true, kind: 'insufficient' };
+    if (this.chess.isDrawByFiftyMoves()) return { over: true, kind: 'fiftymove' };
     if (this.chess.isDraw()) return { over: true, kind: 'draw' };
     return { over: false };
   }
