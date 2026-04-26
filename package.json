@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "postinstall": "mkdir -p public/stockfish && cp -R node_modules/stockfish/bin/. public/stockfish/ 2>/dev/null || true"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
