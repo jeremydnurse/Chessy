@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "postinstall": "mkdir -p public/stockfish && cp -R node_modules/stockfish/bin/. public/stockfish/ 2>/dev/null || true"
+    "postinstall": "mkdir -p public/stockfish && cp -f node_modules/stockfish/bin/stockfish-18-lite-single.js public/stockfish/stockfish.js && cp -f node_modules/stockfish/bin/stockfish-18-lite-single.wasm public/stockfish/stockfish.wasm"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
