@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chess vs Claude
 
-## Getting Started
+Browser chess game. You play against Stockfish (labeled "Claude" in the UI). Drop, paste, or upload a screenshot of any board and the game loads that position via Claude vision.
 
-First, run the development server:
+## Features
+
+- Standard chess rules via [chess.js](https://github.com/jhlywa/chess.js)
+- Drag-drop board with [react-chessboard](https://github.com/Clariity/react-chessboard) v5
+- Stockfish engine in a Web Worker, difficulty slider 1–20 (default 8)
+- Screenshot recognition via Anthropic Claude Sonnet 4.6 (single serverless route)
+- Position editor with raw-FEN paste-in for correcting recognition errors
+- Move history, undo, flip board, resign, new game
+- localStorage persistence
+
+## Local development
 
 ```bash
+npm install
+cp .env.local.example .env.local
+# edit .env.local and set ANTHROPIC_API_KEY
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tests
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test          # one-shot (Vitest)
+npm run test:watch
+npm run lint
+npm run build
+```
 
-## Learn More
+## How to play
 
-To learn more about Next.js, take a look at the following resources:
+- Drag a piece to make a move; legal moves are validated by chess.js, illegal ones snap back. Pawns auto-promote to queen.
+- Use the **Upload screenshot** button, **Paste** button, drag-drop anywhere, or Cmd/Ctrl+V to load a position from any image.
+- After recognition, you land in **Edit mode** — confirm the position (or correct it via the raw FEN field), pick whose turn it is, your color, and difficulty, then click **Start game**.
+- The board mirrors to localStorage on every move. Reload restores exactly.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy to Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Push this repo to GitHub.
+2. Import it on [vercel.com/new](https://vercel.com/new).
+3. In **Settings → Environment Variables**, set `ANTHROPIC_API_KEY` for Production (and Preview if you want preview deploys to support recognition).
+4. Trigger a deploy. Vercel auto-detects Next.js. The `postinstall` script copies the Stockfish worker into `public/`.
 
-## Deploy on Vercel
+The only server-rendered route is `/api/recognize`. Everything else is static.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Architecture
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Design spec: [docs/superpowers/specs/2026-04-26-chess-game-design.md](docs/superpowers/specs/2026-04-26-chess-game-design.md)
+- Implementation plan: [docs/superpowers/plans/2026-04-26-chess-game.md](docs/superpowers/plans/2026-04-26-chess-game.md)
+
+```
+app/
+├── layout.tsx, page.tsx            # client orchestrator
+└── api/recognize/route.ts          # Claude vision endpoint (server)
+components/
+├── Board.tsx, ControlPanel.tsx, MoveHistory.tsx
+├── UploadZone.tsx, EditMode.tsx, GameOverModal.tsx
+lib/
+├── game.ts        # chess.js wrapper (authoritative state)
+├── engine.ts      # Stockfish Web Worker wrapper + difficulty mapping
+├── persistence.ts # localStorage save/load/clear
+├── fen.ts         # FEN validation + completion
+└── image.ts       # base64 + canvas resize for uploads
+public/stockfish/  # vendored worker (lite-single variant, ~7MB)
+```
+
+## Limitations (v1)
+
+- Castling rights are inferred conservatively from imported positions (defaults to "all rights"), so Stockfish may attempt castling that wouldn't be legal in the original game.
+- En-passant target isn't reconstructed from screenshots.
+- No clocks, no online multiplayer, no PGN export. These are deferred.
