@@ -118,7 +118,8 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setRecognizeError(data.error ?? 'Recognition failed');
+        const detail = typeof data.raw === 'string' ? `: ${data.raw.slice(0, 300)}` : '';
+        setRecognizeError(`${data.error ?? 'Recognition failed'}${detail}`);
         setMode('play');
         return;
       }

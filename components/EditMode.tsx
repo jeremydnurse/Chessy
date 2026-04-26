@@ -47,12 +47,13 @@ export function EditMode({
       <div className={`p-3 rounded ${banner.color}`}>{banner.text}</div>
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
-        <div>
+        <div className="max-w-[60vh] mx-auto w-full">
           <Chessboard
             options={{
               position: fenValid ? fullFen! : completeFen(STARTING_PLACEMENT, 'w'),
               allowDragging: false,
               boardOrientation: humanColor === 'w' ? 'white' : 'black',
+              boardStyle: { aspectRatio: '1 / 1', width: '100%', height: 'auto' },
             }}
           />
         </div>

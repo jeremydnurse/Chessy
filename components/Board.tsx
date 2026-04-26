@@ -60,6 +60,11 @@ export function Board({
         boardOrientation: orientation,
         allowDragging: arePiecesDraggable,
         squareStyles,
+        boardStyle: {
+          aspectRatio: '1 / 1',
+          width: '100%',
+          height: 'auto',
+        },
         onPieceDrop: handlePieceDrop,
       }}
     />
