@@ -40,11 +40,11 @@ export default function Home() {
     return () => engineRef.current?.dispose();
   }, []);
 
-  function persist() {
+  function persist(over?: { humanColor?: 'w' | 'b'; difficulty?: number; fen?: string }) {
     saveGameState({
-      fen: gameRef.current.fen(),
-      humanColor,
-      difficulty,
+      fen: over?.fen ?? gameRef.current.fen(),
+      humanColor: over?.humanColor ?? humanColor,
+      difficulty: over?.difficulty ?? difficulty,
       resigned: false,
     });
   }
@@ -138,7 +138,7 @@ export default function Home() {
     setOrientation(cfg.humanColor === 'w' ? 'white' : 'black');
     setLastMove(undefined);
     setMode('play');
-    persist();
+    persist({ humanColor: cfg.humanColor, difficulty: cfg.difficulty, fen: cfg.fen });
     rerender();
   }
 
@@ -210,9 +210,9 @@ export default function Home() {
               onColorChange={(c) => {
                 setHumanColor(c);
                 setOrientation(c === 'w' ? 'white' : 'black');
-                persist();
+                persist({ humanColor: c });
               }}
-              onDifficultyChange={(d) => { setDifficulty(d); persist(); }}
+              onDifficultyChange={(d) => { setDifficulty(d); persist({ difficulty: d }); }}
               onFlip={() => setOrientation((o) => (o === 'white' ? 'black' : 'white'))}
               onUndo={onUndo}
               onResign={onResign}
