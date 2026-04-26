@@ -53,3 +53,23 @@ describe('Engine', () => {
     engine.dispose();
   });
 });
+
+describe('mapSliderToEngine', () => {
+  it('maps slider 1 to skill 0 / movetime 100', async () => {
+    const { mapSliderToEngine } = await import('@/lib/engine');
+    expect(mapSliderToEngine(1)).toEqual({ skill: 0, movetimeMs: 100 });
+  });
+  it('maps slider 8 to skill 7 / movetime 1000', async () => {
+    const { mapSliderToEngine } = await import('@/lib/engine');
+    expect(mapSliderToEngine(8)).toEqual({ skill: 7, movetimeMs: 1000 });
+  });
+  it('maps slider 20 to skill 19 / movetime 3000', async () => {
+    const { mapSliderToEngine } = await import('@/lib/engine');
+    expect(mapSliderToEngine(20)).toEqual({ skill: 19, movetimeMs: 3000 });
+  });
+  it('clamps out-of-range values', async () => {
+    const { mapSliderToEngine } = await import('@/lib/engine');
+    expect(mapSliderToEngine(0)).toEqual({ skill: 0, movetimeMs: 100 });
+    expect(mapSliderToEngine(99)).toEqual({ skill: 19, movetimeMs: 3000 });
+  });
+});

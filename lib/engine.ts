@@ -79,3 +79,25 @@ export class Engine {
     this.listeners = [];
   }
 }
+
+export function mapSliderToEngine(slider: number): { skill: number; movetimeMs: number } {
+  const clamped = Math.max(1, Math.min(20, Math.round(slider)));
+  // Skill is just slider clamped to 0..19 (slider 1 → skill 0).
+  const skill = Math.max(0, clamped - 1);
+  // movetime: piecewise interpolation through these anchors.
+  const anchors: [number, number][] = [
+    [1, 100], [5, 300], [8, 1000], [14, 1500], [20, 3000],
+  ];
+  let movetimeMs = anchors[0][1];
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const [x0, y0] = anchors[i];
+    const [x1, y1] = anchors[i + 1];
+    if (clamped >= x0 && clamped <= x1) {
+      const t = (clamped - x0) / (x1 - x0);
+      movetimeMs = Math.round(y0 + t * (y1 - y0));
+      break;
+    }
+    if (clamped > x1) movetimeMs = y1;
+  }
+  return { skill, movetimeMs };
+}
