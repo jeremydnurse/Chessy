@@ -3,11 +3,16 @@ import { useEffect, useRef } from 'react';
 import { resizeAndEncode } from '@/lib/image';
 
 export function UploadZone({ onImage }: { onImage: (base64: string) => void }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  // Hold the latest onImage in a ref so the window listeners (registered once)
+  // always call the current callback, not the one from first render.
+  const onImageRef = useRef(onImage);
+  useEffect(() => {
+    onImageRef.current = onImage;
+  });
 
   async function handleBlob(blob: Blob) {
     const b64 = await resizeAndEncode(blob);
-    onImage(b64);
+    onImageRef.current(b64);
   }
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -33,13 +38,17 @@ export function UploadZone({ onImage }: { onImage: (base64: string) => void }) {
   }
 
   useEffect(() => {
+    async function ingest(blob: Blob) {
+      const b64 = await resizeAndEncode(blob);
+      onImageRef.current(b64);
+    }
     function onPaste(e: ClipboardEvent) {
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const it of items) {
         if (it.type.startsWith('image/')) {
           const file = it.getAsFile();
-          if (file) handleBlob(file);
+          if (file) ingest(file);
           return;
         }
       }
@@ -47,7 +56,7 @@ export function UploadZone({ onImage }: { onImage: (base64: string) => void }) {
     function onDrop(e: DragEvent) {
       e.preventDefault();
       const f = e.dataTransfer?.files?.[0];
-      if (f && f.type.startsWith('image/')) handleBlob(f);
+      if (f && f.type.startsWith('image/')) ingest(f);
     }
     function onDragOver(e: DragEvent) { e.preventDefault(); }
     window.addEventListener('paste', onPaste);
@@ -58,7 +67,6 @@ export function UploadZone({ onImage }: { onImage: (base64: string) => void }) {
       window.removeEventListener('drop', onDrop);
       window.removeEventListener('dragover', onDragOver);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -66,7 +74,6 @@ export function UploadZone({ onImage }: { onImage: (base64: string) => void }) {
       <label className="px-3 py-1 border rounded cursor-pointer">
         Upload screenshot
         <input
-          ref={inputRef}
           type="file"
           accept="image/*"
           aria-label="Upload screenshot"
