@@ -5,9 +5,13 @@ export interface BestMoveOptions {
   timeoutMs?: number;
 }
 
+// Not safe for parallel bestMove() calls — Stockfish processes commands serially
+// and concurrent calls would garble the UCI command stream. The page only ever
+// asks for one move at a time, so this is fine.
 export class Engine {
   private worker: Worker;
   private listeners: ((line: string) => void)[] = [];
+  private disposed = false;
 
   constructor() {
     this.worker = this.spawn();
@@ -57,7 +61,7 @@ export class Engine {
         try {
           this.worker.terminate();
         } catch {}
-        this.worker = this.spawn();
+        if (!this.disposed) this.worker = this.spawn();
         reject(new Error(`Engine timeout after ${timeoutMs}ms`));
       }, timeoutMs);
 
@@ -68,6 +72,7 @@ export class Engine {
   }
 
   dispose() {
+    this.disposed = true;
     try {
       this.worker.terminate();
     } catch {}
