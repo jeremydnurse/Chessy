@@ -2,13 +2,29 @@ import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
 import { isValidPlacement, completeFen, isValidFen } from '@/lib/fen';
 
-const SYSTEM_PROMPT = `You read chess board screenshots. Output strict JSON matching this schema:
-{"fen": string, "sideToMove": "w"|"b", "confidence": number 0-1, "notes": string}.
-"fen" is the piece-placement field only (8 ranks, top to bottom, separated by "/").
-Do not include castling rights, en-passant, halfmove, or fullmove fields.
-If you cannot read the board, set "confidence" to 0 and put a brief explanation in "notes".
-If the side-to-move indicator isn't visible, default "sideToMove" to "w".
-Return ONLY the JSON object, no prose, no markdown fences.`;
+const SYSTEM_PROMPT = `You read chess board screenshots and report the position by calling the report_position tool.
+- "fen": piece-placement field only — 8 ranks separated by "/", top rank (rank 8) first. Uppercase = white, lowercase = black, digits 1-8 = empty squares.
+- "sideToMove": "w" or "b". Default to "w" when not indicated in the image.
+- "confidence": 0..1. Use 0 if the board cannot be read; put a brief explanation in "notes".
+- Always call the tool exactly once.`;
+
+const REPORT_TOOL = {
+  name: 'report_position',
+  description: 'Report the chess position read from the screenshot.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      fen: {
+        type: 'string',
+        description: 'Piece-placement field only: 8 ranks separated by "/", rank 8 first. No castling/en-passant/halfmove/fullmove fields.',
+      },
+      sideToMove: { type: 'string', enum: ['w', 'b'] },
+      confidence: { type: 'number', description: '0..1' },
+      notes: { type: 'string' },
+    },
+    required: ['fen', 'sideToMove', 'confidence', 'notes'],
+  },
+};
 
 interface ParsedResponse {
   fen: string;
@@ -17,45 +33,15 @@ interface ParsedResponse {
   notes: string;
 }
 
-// Find the first balanced {...} substring, tolerating any prose/fences around it.
-function extractJsonObject(text: string): string | null {
-  const start = text.indexOf('{');
-  if (start === -1) return null;
-  let depth = 0;
-  let inString = false;
-  let escape = false;
-  for (let i = start; i < text.length; i++) {
-    const ch = text[i];
-    if (escape) { escape = false; continue; }
-    if (ch === '\\') { escape = true; continue; }
-    if (ch === '"') { inString = !inString; continue; }
-    if (inString) continue;
-    if (ch === '{') depth++;
-    else if (ch === '}') {
-      depth--;
-      if (depth === 0) return text.slice(start, i + 1);
-    }
-  }
-  return null;
-}
-
-function parseModelText(text: string): ParsedResponse | null {
-  const json = extractJsonObject(text);
-  if (!json) return null;
-  try {
-    const obj = JSON.parse(json);
-    if (
-      typeof obj.fen === 'string' &&
-      (obj.sideToMove === 'w' || obj.sideToMove === 'b') &&
-      typeof obj.confidence === 'number' &&
-      typeof obj.notes === 'string'
-    ) {
-      return obj;
-    }
-    return null;
-  } catch {
-    return null;
-  }
+function isParsedResponse(x: unknown): x is ParsedResponse {
+  if (!x || typeof x !== 'object') return false;
+  const o = x as Record<string, unknown>;
+  return (
+    typeof o.fen === 'string' &&
+    (o.sideToMove === 'w' || o.sideToMove === 'b') &&
+    typeof o.confidence === 'number' &&
+    typeof o.notes === 'string'
+  );
 }
 
 export async function POST(req: Request) {
@@ -76,15 +62,17 @@ export async function POST(req: Request) {
   try {
     response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: 2048,
       temperature: 0,
       system: SYSTEM_PROMPT,
+      tools: [REPORT_TOOL],
+      tool_choice: { type: 'tool', name: REPORT_TOOL.name },
       messages: [
         {
           role: 'user',
           content: [
             { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: body.imageBase64 } },
-            { type: 'text', text: 'Read this chess position.' },
+            { type: 'text', text: 'Read this chess position and report it via the report_position tool.' },
           ],
         },
       ],
@@ -93,12 +81,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Vision call failed', detail: String(e) }, { status: 502 });
   }
 
-  const block = response.content.find((c: { type: string }) => c.type === 'text');
-  const text = block && 'text' in block ? (block as { text: string }).text : '';
-  const parsed = parseModelText(text);
-  if (!parsed) {
-    return NextResponse.json({ error: 'Model did not return valid JSON', raw: text }, { status: 422 });
+  const toolBlock = response.content.find((c: { type: string }) => c.type === 'tool_use');
+  const input = toolBlock && 'input' in toolBlock ? (toolBlock as { input: unknown }).input : null;
+  if (!isParsedResponse(input)) {
+    return NextResponse.json(
+      { error: 'Model did not return valid tool call', raw: response.content },
+      { status: 422 },
+    );
   }
+  const parsed = input;
 
   if (!isValidPlacement(parsed.fen)) {
     return NextResponse.json({ error: 'Invalid FEN placement', raw: parsed }, { status: 422 });

@@ -32,13 +32,14 @@ describe('POST /api/recognize', () => {
   it('returns parsed JSON when Claude responds with valid FEN', async () => {
     mockCreate.mockResolvedValue({
       content: [{
-        type: 'text',
-        text: JSON.stringify({
+        type: 'tool_use',
+        name: 'report_position',
+        input: {
           fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR',
           sideToMove: 'w',
           confidence: 0.9,
           notes: '',
-        }),
+        },
       }],
     });
     const res = await callRoute({ imageBase64: 'iVBORw0KG...' });
@@ -52,14 +53,23 @@ describe('POST /api/recognize', () => {
   it('returns 422 when Claude returns invalid placement', async () => {
     mockCreate.mockResolvedValue({
       content: [{
-        type: 'text',
-        text: JSON.stringify({ fen: 'garbage', sideToMove: 'w', confidence: 0.5, notes: '' }),
+        type: 'tool_use',
+        name: 'report_position',
+        input: { fen: 'garbage', sideToMove: 'w', confidence: 0.5, notes: '' },
       }],
     });
     const res = await callRoute({ imageBase64: 'x' });
     expect(res.status).toBe(422);
     const data = await res.json();
     expect(data.error).toBeDefined();
+  });
+
+  it('returns 422 when Claude returns no tool_use block', async () => {
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: 'I am rambling instead of calling the tool' }],
+    });
+    const res = await callRoute({ imageBase64: 'x' });
+    expect(res.status).toBe(422);
   });
 
   it('returns 502 when SDK throws', async () => {
