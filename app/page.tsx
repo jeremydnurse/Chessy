@@ -31,6 +31,9 @@ export default function Home() {
   const [recognizeError, setRecognizeError] = useState<string | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | undefined>();
   const [savedPositions, setSavedPositions] = useState<SavedPosition[]>([]);
+  const [engineStatus, setEngineStatus] = useState<
+    { kind: 'idle' } | { kind: 'thinking' } | { kind: 'error'; message: string }
+  >({ kind: 'idle' });
 
   // Restore from localStorage and spawn engine on mount.
   useEffect(() => {
@@ -82,22 +85,30 @@ export default function Home() {
     if (!engine) return;
 
     const { skill, movetimeMs } = mapSliderToEngine(difficulty);
+    setEngineStatus({ kind: 'thinking' });
     engine
       .bestMove({ fen: gameFen, skill, movetimeMs })
       .then((uci) => {
         const from = uci.slice(0, 2);
         const to = uci.slice(2, 4);
         const promotion = uci.length > 4 ? uci.slice(4, 5) : undefined;
-         
+
         const ok = gameRef.current.move({ from, to, promotion });
         if (ok) {
           setLastMove({ from, to });
           persist();
+          setEngineStatus({ kind: 'idle' });
           rerender();
+        } else {
+          setEngineStatus({
+            kind: 'error',
+            message: `Engine suggested an illegal move: ${uci}`,
+          });
         }
       })
       .catch((e) => {
         console.error('Engine error', e);
+        setEngineStatus({ kind: 'error', message: String(e?.message ?? e) });
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, humanColor, difficulty, gameFen]);
@@ -141,21 +152,23 @@ export default function Home() {
   }
 
   function onStartFromEdit(cfg: StartConfig) {
-     
+
     gameRef.current.load(cfg.fen);
     setHumanColor(cfg.humanColor);
     setDifficulty(cfg.difficulty);
     setOrientation(cfg.humanColor === 'w' ? 'white' : 'black');
     setLastMove(undefined);
+    setEngineStatus({ kind: 'idle' });
     setMode('play');
     persist({ humanColor: cfg.humanColor, difficulty: cfg.difficulty, fen: cfg.fen });
     rerender();
   }
 
   function onNewGame() {
-     
+
     gameRef.current = new Game();
     setLastMove(undefined);
+    setEngineStatus({ kind: 'idle' });
     clearGameState();
     setMode('play');
     rerender();
@@ -229,6 +242,17 @@ export default function Home() {
             onStart={onStartFromEdit}
             onCancel={() => setMode('play')}
           />
+        </div>
+      )}
+
+      {mode === 'play' && engineStatus.kind === 'error' && (
+        <div className="p-3 bg-red-100 text-red-800 text-sm">
+          Engine error: {engineStatus.message}
+        </div>
+      )}
+      {mode === 'play' && engineStatus.kind === 'thinking' && (
+        <div className="p-2 bg-blue-50 text-blue-800 text-sm text-center">
+          Engine thinking…
         </div>
       )}
 

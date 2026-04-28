@@ -46,11 +46,15 @@ export class Engine {
       const remove = this.addListener((line) => {
         if (settled) return;
         if (line.startsWith('bestmove ')) {
-          const move = line.split(' ')[1];
+          const move = line.split(' ')[1] ?? '';
           settled = true;
           remove();
           clearTimeout(timer);
-          resolve(move);
+          if (!move || move === '(none)' || move === '0000') {
+            reject(new Error(`Engine returned no move: "${line}"`));
+          } else {
+            resolve(move);
+          }
         }
       });
 
@@ -66,6 +70,8 @@ export class Engine {
       }, timeoutMs);
 
       this.send(`setoption name Skill Level value ${Math.max(0, Math.min(20, Math.floor(skill)))}`);
+      this.send('ucinewgame');
+      this.send('isready');
       this.send(`position fen ${fen}`);
       this.send(`go movetime ${movetimeMs}`);
     });
