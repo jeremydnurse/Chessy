@@ -1,4 +1,4 @@
-# Chess vs Claude
+# Chessy - Copy and Paste your favorite setups!
 
 Browser chess game. You play against Stockfish (labeled "Claude" in the UI). Drop, paste, or upload a screenshot of any board and the game loads that position via Claude vision.
 
