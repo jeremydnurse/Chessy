@@ -46,7 +46,7 @@ export default function AuthPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     required
-                    className="mt-1 block w-full h-10 px-3 rounded border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:outline-none"
+                    className="mt-1 block w-full h-10 px-3 rounded border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:outline-none"
                   />
                 </label>
                 <button
