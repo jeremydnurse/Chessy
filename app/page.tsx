@@ -6,9 +6,16 @@ import { MoveHistory } from '@/components/MoveHistory';
 import { UploadZone } from '@/components/UploadZone';
 import { EditMode, RecognizedPosition, StartConfig } from '@/components/EditMode';
 import { GameOverModal } from '@/components/GameOverModal';
+import { SavedPositions } from '@/components/SavedPositions';
 import { Game, GameResult } from '@/lib/game';
 import { Engine, mapSliderToEngine } from '@/lib/engine';
 import { saveGameState, loadGameState, clearGameState } from '@/lib/persistence';
+import {
+  SavedPosition,
+  listSavedPositions,
+  addSavedPosition,
+  deleteSavedPosition,
+} from '@/lib/savedPositions';
 
 type Mode = 'play' | 'edit' | 'recognizing';
 
@@ -23,6 +30,7 @@ export default function Home() {
   const [recognized, setRecognized] = useState<RecognizedPosition | null>(null);
   const [recognizeError, setRecognizeError] = useState<string | null>(null);
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | undefined>();
+  const [savedPositions, setSavedPositions] = useState<SavedPosition[]>([]);
 
   // Restore from localStorage and spawn engine on mount.
   useEffect(() => {
@@ -37,6 +45,7 @@ export default function Home() {
       setOrientation(saved.humanColor === 'w' ? 'white' : 'black');
     }
     engineRef.current = new Engine();
+    setSavedPositions(listSavedPositions());
     return () => engineRef.current?.dispose();
   }, []);
 
@@ -167,6 +176,36 @@ export default function Home() {
     if (confirm('Resign this game?')) onNewGame();
   }
 
+  function onEditCurrent() {
+    setRecognized({
+      fen: gameFen.split(' ')[0],
+      sideToMove: gameTurn,
+      confidence: 1,
+      notes: '',
+    });
+    setMode('edit');
+  }
+
+  function onSavePosition() {
+    const name = prompt('Name this position:');
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setSavedPositions(addSavedPosition(trimmed, gameFen));
+  }
+
+  function onLoadPosition(p: SavedPosition) {
+    gameRef.current.load(p.fen);
+    setLastMove(undefined);
+    setMode('play');
+    persist({ fen: p.fen });
+    rerender();
+  }
+
+  function onDeletePosition(id: string) {
+    setSavedPositions(deleteSavedPosition(id));
+  }
+
   return (
     <main className="min-h-screen bg-gray-50">
       <header className="flex items-center gap-3 p-3 border-b bg-white">
@@ -218,10 +257,20 @@ export default function Home() {
               onUndo={onUndo}
               onResign={onResign}
               onNewGame={onNewGame}
+              onEdit={onEditCurrent}
+              onSavePosition={onSavePosition}
             />
             <div className="border rounded bg-white">
               <h2 className="px-4 pt-4 font-medium">Move history</h2>
               <MoveHistory moves={gameMoves} />
+            </div>
+            <div className="border rounded bg-white">
+              <h2 className="px-4 pt-4 font-medium">Saved positions</h2>
+              <SavedPositions
+                positions={savedPositions}
+                onLoad={onLoadPosition}
+                onDelete={onDeletePosition}
+              />
             </div>
           </div>
         </div>
@@ -230,15 +279,8 @@ export default function Home() {
       <GameOverModal
         result={result}
         onPlayAgain={onNewGame}
-        onEditPosition={() => {
-          setRecognized({
-            fen: gameFen.split(' ')[0],
-            sideToMove: gameTurn,
-            confidence: 1,
-            notes: '',
-          });
-          setMode('edit');
-        }}
+        onEditPosition={onEditCurrent}
+        onUndo={onUndo}
       />
     </main>
   );

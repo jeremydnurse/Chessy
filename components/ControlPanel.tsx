@@ -9,6 +9,8 @@ export interface ControlPanelProps {
   onUndo: () => void;
   onResign: () => void;
   onNewGame: () => void;
+  onEdit: () => void;
+  onSavePosition: () => void;
 }
 
 export function ControlPanel(props: ControlPanelProps) {
@@ -16,6 +18,7 @@ export function ControlPanel(props: ControlPanelProps) {
     humanColor, difficulty,
     onColorChange, onDifficultyChange,
     onFlip, onUndo, onResign, onNewGame,
+    onEdit, onSavePosition,
   } = props;
 
   return (
@@ -59,6 +62,8 @@ export function ControlPanel(props: ControlPanelProps) {
       <div className="flex flex-wrap gap-2">
         <button onClick={onFlip} className="px-3 py-1 border rounded">Flip</button>
         <button onClick={onUndo} className="px-3 py-1 border rounded">Undo</button>
+        <button onClick={onEdit} className="px-3 py-1 border rounded">Edit</button>
+        <button onClick={onSavePosition} className="px-3 py-1 border rounded">Save FEN</button>
         <button onClick={onResign} className="px-3 py-1 border rounded">Resign</button>
         <button onClick={onNewGame} className="px-3 py-1 border rounded">New game</button>
       </div>

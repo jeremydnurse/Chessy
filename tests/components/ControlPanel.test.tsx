@@ -15,6 +15,8 @@ describe('ControlPanel', () => {
         onUndo={() => {}}
         onResign={() => {}}
         onNewGame={() => {}}
+        onEdit={() => {}}
+        onSavePosition={() => {}}
       />
     );
     fireEvent.click(screen.getByLabelText('Play as Black'));
@@ -33,6 +35,8 @@ describe('ControlPanel', () => {
         onUndo={() => {}}
         onResign={() => {}}
         onNewGame={() => {}}
+        onEdit={() => {}}
+        onSavePosition={() => {}}
       />
     );
     fireEvent.change(screen.getByLabelText(/difficulty/i), { target: { value: '15' } });
@@ -51,6 +55,8 @@ describe('ControlPanel', () => {
         onUndo={undo}
         onResign={resign}
         onNewGame={newGame}
+        onEdit={() => {}}
+        onSavePosition={() => {}}
       />
     );
     fireEvent.click(screen.getByRole('button', { name: /flip/i }));
@@ -61,5 +67,28 @@ describe('ControlPanel', () => {
     expect(undo).toHaveBeenCalled();
     expect(resign).toHaveBeenCalled();
     expect(newGame).toHaveBeenCalled();
+  });
+
+  it('fires edit and save callbacks', () => {
+    const edit = vi.fn();
+    const save = vi.fn();
+    render(
+      <ControlPanel
+        humanColor="w"
+        difficulty={8}
+        onColorChange={() => {}}
+        onDifficultyChange={() => {}}
+        onFlip={() => {}}
+        onUndo={() => {}}
+        onResign={() => {}}
+        onNewGame={() => {}}
+        onEdit={edit}
+        onSavePosition={save}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^edit$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /save fen/i }));
+    expect(edit).toHaveBeenCalled();
+    expect(save).toHaveBeenCalled();
   });
 });

@@ -5,10 +5,12 @@ export function GameOverModal({
   result,
   onPlayAgain,
   onEditPosition,
+  onUndo,
 }: {
   result: GameResult;
   onPlayAgain: () => void;
   onEditPosition: () => void;
+  onUndo: () => void;
 }) {
   if (!result.over) return null;
   const title =
@@ -24,6 +26,7 @@ export function GameOverModal({
       <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col gap-4 min-w-[300px]">
         <h2 className="text-xl font-semibold">{title}</h2>
         <div className="flex gap-2 justify-end">
+          <button onClick={onUndo} className="px-3 py-1 border rounded">Undo</button>
           <button onClick={onEditPosition} className="px-3 py-1 border rounded">Edit position</button>
           <button onClick={onPlayAgain} className="px-3 py-1 border rounded bg-blue-600 text-white">Play again</button>
         </div>
