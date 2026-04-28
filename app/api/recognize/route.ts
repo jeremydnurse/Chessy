@@ -3,10 +3,18 @@ import { NextResponse } from 'next/server';
 import { isValidPlacement, completeFen, describeFenValidity } from '@/lib/fen';
 
 const SYSTEM_PROMPT = `You read chess board screenshots and report the position by calling the report_position tool.
-- "fen": piece-placement field only — 8 ranks separated by "/", top rank (rank 8) first. Uppercase = white, lowercase = black, digits 1-8 = empty squares.
-- "sideToMove": "w" or "b". Default to "w" when not indicated in the image.
-- "confidence": 0..1. Use 0 if the board cannot be read; put a brief explanation in "notes".
-- Always call the tool exactly once.`;
+
+ORIENTATION: Boards may be shown from either side. Always use the visible file/rank labels around the board edge as the source of truth, NOT the position of the labels in the image:
+- The file letter ("a"-"h") under a column tells you which file that column is, regardless of which side of the image it appears on.
+- The rank number ("1"-"8") next to a row tells you which rank that row is, regardless of which side of the image it appears on.
+- A board displayed from Black's perspective will have file labels reading h-g-f-e-d-c-b-a left-to-right and rank 1 at the top. Re-map every piece accordingly so your output is always in standard FEN order.
+- If labels aren't visible, assume White's perspective (a-file at left, rank 8 at top).
+
+OUTPUT (always call the tool exactly once):
+- "fen": piece-placement field only — 8 ranks separated by "/", rank 8 first. Uppercase = white, lowercase = black, digits 1-8 = empty squares.
+- "sideToMove": "w" or "b". Default to "w" when not indicated.
+- "confidence": 0..1. Use 0 if the board cannot be read.
+- "notes": one short sentence MAX. Do NOT think out loud here — keep your reasoning to yourself.`;
 
 const REPORT_TOOL = {
   name: 'report_position',

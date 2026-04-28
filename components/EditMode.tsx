@@ -70,6 +70,13 @@ function pieceTypeToFen(pieceType: string): string {
   return color === 'w' ? letter.toUpperCase() : letter.toLowerCase();
 }
 
+function rotate180Placement(placement: string): string {
+  if (!isValidPlacement(placement)) return placement;
+  const board = placementToBoard(placement);
+  const rotated = board.slice().reverse().map((rank) => rank.slice().reverse());
+  return boardToPlacement(rotated);
+}
+
 export function EditMode({
   recognized,
   onStart,
@@ -202,6 +209,13 @@ export function EditMode({
               className="px-3 py-1 border rounded"
             >
               Clear board
+            </button>
+            <button
+              onClick={() => setPlacement(rotate180Placement(placement))}
+              className="px-3 py-1 border rounded"
+              title="Rotate the position 180° — fixes upload from black's perspective"
+            >
+              Rotate 180°
             </button>
             <button
               disabled={!fenValid}
