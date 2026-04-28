@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
-import { isValidPlacement, completeFen, isValidFen } from '@/lib/fen';
+import { isValidPlacement, completeFen, describeFenValidity } from '@/lib/fen';
 
 const SYSTEM_PROMPT = `You read chess board screenshots and report the position by calling the report_position tool.
 - "fen": piece-placement field only — 8 ranks separated by "/", top rank (rank 8) first. Uppercase = white, lowercase = black, digits 1-8 = empty squares.
@@ -96,8 +96,17 @@ export async function POST(req: Request) {
   }
 
   const full = completeFen(parsed.fen, parsed.sideToMove);
-  if (!isValidFen(full)) {
-    return NextResponse.json({ error: 'Constructed FEN is illegal', raw: parsed }, { status: 422 });
+  const validity = describeFenValidity(full);
+  if (!validity.valid) {
+    // Hand the recognized position to the editor so the user can correct it,
+    // rather than failing the request. Mark it low-confidence so the banner
+    // tells the user what's wrong.
+    const note = `illegal position: ${validity.reason}`;
+    return NextResponse.json({
+      ...parsed,
+      confidence: Math.min(parsed.confidence, 0.3),
+      notes: parsed.notes ? `${parsed.notes} (${note})` : note,
+    });
   }
 
   return NextResponse.json(parsed);

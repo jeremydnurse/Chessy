@@ -64,6 +64,29 @@ describe('POST /api/recognize', () => {
     expect(data.error).toBeDefined();
   });
 
+  it('returns 200 with degraded confidence when constructed FEN is illegal', async () => {
+    // Two black kings — placement is structurally fine but chess.js rejects.
+    mockCreate.mockResolvedValue({
+      content: [{
+        type: 'tool_use',
+        name: 'report_position',
+        input: {
+          fen: '3rkk2/3qp3/8/8/8/8/8/4K3',
+          sideToMove: 'w',
+          confidence: 0.9,
+          notes: 'recognized',
+        },
+      }],
+    });
+    const res = await callRoute({ imageBase64: 'x' });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.fen).toBe('3rkk2/3qp3/8/8/8/8/8/4K3');
+    expect(data.confidence).toBeLessThanOrEqual(0.3);
+    expect(data.notes).toMatch(/illegal/);
+    expect(data.notes).toMatch(/king/i);
+  });
+
   it('returns 422 when Claude returns no tool_use block', async () => {
     mockCreate.mockResolvedValue({
       content: [{ type: 'text', text: 'I am rambling instead of calling the tool' }],

@@ -49,3 +49,16 @@ export function isValidFen(fen: string): boolean {
     return false;
   }
 }
+
+export type FenValidity = { valid: true } | { valid: false; reason: string };
+
+export function describeFenValidity(fen: string): FenValidity {
+  try {
+    new Chess(fen);
+    return { valid: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    // Strip the noisy "Invalid FEN: " prefix chess.js adds.
+    return { valid: false, reason: message.replace(/^Invalid FEN:\s*/i, '') };
+  }
+}
