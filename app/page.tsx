@@ -221,11 +221,10 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <header className="flex items-center gap-3 p-3 border-b bg-white">
-        <h1 className="text-lg font-semibold mr-auto">Chess vs Claude</h1>
+      <div className="flex items-center gap-3 p-3 bg-white">
         <UploadZone onImage={onImage} />
         <button onClick={onNewGame} className="px-3 py-1 border rounded">New game</button>
-      </header>
+      </div>
 
       {recognizeError && (
         <div className="p-3 bg-red-100 text-red-800">{recognizeError}</div>

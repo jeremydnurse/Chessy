@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored Stockfish worker — copied verbatim from node_modules.
     "public/**",
+    // Agent worktrees (temporary isolation dirs).
+    ".claude/worktrees/**",
   ]),
 ]);
 
